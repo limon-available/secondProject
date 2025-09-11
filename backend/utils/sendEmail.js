@@ -1,23 +1,36 @@
-import nodemailer from "nodemailer";
+ import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 
+dotenv.config();
+console.log(process.env.EMAIL, process.env.APP_PASSWORD);
 const sendEmail = async (options) => {
-  const transport = nodemailer.createTransport({
+  // --- Transporter তৈরি ---
+  const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    port: parseInt(process.env.SMTP_PORT),
+    secure: process.env.SMTP_PORT == 465, // 465 হলে SSL, 587 হলে TLS
     auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD,
+      user: process.env.EMAIL,
+      pass: process.env.APP_PASSWORD,
     },
   });
 
+  // --- Message ---
   const message = {
     from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_FROM_EMAIL}>`,
     to: options.email,
     subject: options.subject,
-    html: options.message,
+    html: options.message, // HTML body
   };
 
-  await transport.sendMail(message);
+  try {
+    await transporter.sendMail(message);
+    console.log(`✅ Email sent to ${options.email}`);
+  } catch (error) {
+    console.error("❌ Email send failed:", error);
+    throw error;
+  }
 };
 
+ 
 export default sendEmail;

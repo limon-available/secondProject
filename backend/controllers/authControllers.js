@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { delete_file, upload_file } from "../utils/cloudinary.js";
 
 // Register user   =>  /api/v1/register
+ // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
   const { name, email, password } = req.body;
 
@@ -17,11 +18,26 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     password,
   });
 
+  // --- Send Welcome Email ---
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Welcome to ShopIT!",
+      message: `<h1>Hello ${user.name},</h1>
+                <p>Thank you for registering on ShopIT. We are excited to have you!</p>`
+    });
+  } catch (error) {
+    console.log("Welcome Email Error:", error.message);
+    // Register process বন্ধ হবে না, শুধু log দেখাবে
+  }
+
+  // --- Send JWT Token ---
   sendToken(user, 201, res);
 });
 
+
 // Login user   =>  /api/v1/login
-export const loginUser = catchAsyncErrors(async (req, res, next) => {
+ export const loginUser = catchAsyncErrors(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -42,9 +58,24 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid email or password", 401));
   }
 
+  // --- Send Login Notification Email ---
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Login Alert - ShopIT",
+      message: `<h1>Hello ${user.name},</h1>
+                <p>You just logged in to your ShopIT account. If this wasn't you, please secure your account immediately!</p>`,
+    });
+  } catch (error) {
+    console.log("Login Email Error:", error.message);
+    // Email fail হলেও login process বন্ধ হবে না
+  }
+
   sendToken(user, 200, res);
 });
 
+
+ 
 // Logout user   =>  /api/v1/logout
 export const logout = catchAsyncErrors(async (req, res, next) => {
   res.cookie("token", null, {
